@@ -56,7 +56,7 @@ class ChatFragment : Fragment() {
 
     private fun appendMessage(newMsg: String) {
         messagesView.append(newMsg + "\n")
-        // scroll to bottom
+        // scroll
         scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
     }
 }
