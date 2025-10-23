@@ -30,7 +30,7 @@ class ChatFragment : Fragment() {
         scrollView = v.findViewById(R.id.scrollView)
 
         WebSocketManager.incomingMessages.observe(viewLifecycleOwner, Observer { msg ->
-            appendMessage("Server: $msg")
+            appendMessage(msg)
         })
 
         WebSocketManager.connectionStatus.observe(viewLifecycleOwner, Observer { status ->

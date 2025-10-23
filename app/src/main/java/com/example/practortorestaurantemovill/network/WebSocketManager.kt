@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import okhttp3.*
 import okio.ByteString
+import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 object WebSocketManager {
@@ -38,11 +39,11 @@ object WebSocketManager {
             }
 
             override fun onMessage(ws: WebSocket, text: String) {
-                _incomingMessages.postValue(text)
+                parseAndPostMessage(text)
             }
 
             override fun onMessage(ws: WebSocket, bytes: ByteString) {
-                _incomingMessages.postValue(bytes.utf8())
+                parseAndPostMessage(bytes.utf8())
             }
 
             override fun onClosing(ws: WebSocket, code: Int, reason: String) {
@@ -60,8 +61,22 @@ object WebSocketManager {
                 webSocket = null
             }
         })
+    }
 
-        // client.dispatcher.executorService.shutdown() // don't shutdown if you want reuse
+    private fun parseAndPostMessage(jsonString: String) {
+        try {
+            val jsonObject = JSONObject(jsonString)
+            val sender = jsonObject.optString("sender", "Unknown")
+            val message = jsonObject.optString("message", "")
+
+            // Format the message as "Sender: message"
+            val formattedMessage = "$sender: $message"
+            _incomingMessages.postValue(formattedMessage)
+
+        } catch (e: Exception) {
+            // If parsing fails, post the original message with error info
+            _incomingMessages.postValue("[Error parsing message]: $jsonString")
+        }
     }
 
     fun send(message: String) {
