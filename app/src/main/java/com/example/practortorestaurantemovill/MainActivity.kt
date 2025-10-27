@@ -1,5 +1,6 @@
 package com.example.practortorestaurantemovill
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -51,6 +52,23 @@ class MainActivity : AppCompatActivity() {
                 else -> "Tab ${position+1}"
             }
         }.attach()
+    }
+
+    private fun restartApp() {
+        // Crear intent para volver a LoadingActivity
+        val intent = Intent(this, InicioActivity::class.java)
+
+        // Limpiar toda la pila de actividades y crear una nueva
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+
+        // Cerrar WebSocket si es necesario
+        //WebSocketManager.disconnect()
+
+        startActivity(intent)
+        finish()
+
+        // Forzar cierre del proceso actual (opcional)
+        // android.os.Process.killProcess(android.os.Process.myPid())
     }
 
     override fun onDestroy() {
