@@ -21,6 +21,7 @@ import org.json.JSONObject
 
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewpager2.widget.ViewPager2
+import com.example.crudform.SingleMenu
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.example.practortorestaurantemovill.ui.ChatFragment
@@ -32,17 +33,22 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewPager: ViewPager2
     private lateinit var tabLayout: TabLayout
 
+    private var listaMenus: ArrayList<SingleMenu> = ArrayList()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Start WebSocket connection on app start (before fragments shown)
+        listaMenus = intent.getParcelableArrayListExtra<SingleMenu>("listaMenus")!!
+
+        //println(listaMenus)
+
         WebSocketManager.connect("ws://10.0.2.2:8025/websocket/android-client")
 
         viewPager = findViewById(R.id.viewPager)
         tabLayout = findViewById(R.id.tabLayout)
 
-        val adapter = MainPagerAdapter(this)
+        val adapter = MainPagerAdapter(this, listaMenus)
         viewPager.adapter = adapter
 
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
