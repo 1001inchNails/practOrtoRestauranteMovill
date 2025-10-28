@@ -4,8 +4,12 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.ProgressBar
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -22,6 +26,7 @@ class InicioActivity : AppCompatActivity() {
     private lateinit var btnContinue: Button
     private lateinit var tvStatus: TextView
     private lateinit var progressBar: ProgressBar
+    private lateinit var spinnerMesas: Spinner
 
     private var isLoadingComplete = false
     private var userClickedButton = false
@@ -33,6 +38,7 @@ class InicioActivity : AppCompatActivity() {
 
     private var pendingMesaRequests = 0
     private var menusLoaded = false
+    private var mesaSeleccionada: Int = -1 // Para almacenar la mesa seleccionada
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,6 +47,7 @@ class InicioActivity : AppCompatActivity() {
         btnContinue = findViewById(R.id.btnContinue)
         tvStatus = findViewById(R.id.tvStatus)
         progressBar = findViewById(R.id.progressBar)
+        spinnerMesas = findViewById(R.id.spinnerMesas)
 
         setupUI()
         loadContent()
@@ -48,11 +55,44 @@ class InicioActivity : AppCompatActivity() {
 
     private fun setupUI() {
         btnContinue.isEnabled = false
-        btnContinue.text = "Cargando..."
+        btnContinue.text = "Continuar"
+
+        // Configurar el Spinner
+        setupSpinner()
 
         btnContinue.setOnClickListener {
-            userClickedButton = true
-            readyCheck()
+            if (mesaSeleccionada != -1) {
+                userClickedButton = true
+                readyCheck()
+            } else {
+                Toast.makeText(this, "Por favor, selecciona una mesa", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun setupSpinner() {
+        // Crear un adaptador simple con un array vacío inicialmente
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, ArrayList<String>())
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerMesas.adapter = adapter
+
+        // Listener para cuando se selecciona un item
+        spinnerMesas.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (position > 0) { // Posición 0 es el hint
+                    val selectedItem = parent?.getItemAtPosition(position).toString()
+                    mesaSeleccionada = selectedItem.toInt()
+                    btnContinue.isEnabled = true
+                } else {
+                    mesaSeleccionada = -1
+                    btnContinue.isEnabled = false
+                }
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                mesaSeleccionada = -1
+                btnContinue.isEnabled = false
+            }
         }
     }
 
@@ -78,7 +118,6 @@ class InicioActivity : AppCompatActivity() {
     }
 
     private fun loadAllOpciones() {
-
         listaMesasDisponibles.forEach { mesaId ->
             if (mesaId == "Mesa1"){
                 listaOpcionesMesasDisponibles.add(1)
@@ -97,6 +136,25 @@ class InicioActivity : AppCompatActivity() {
             }
         }
         listaOpcionesMesasDisponibles.sort()
+
+        // Actualizar el Spinner con las opciones disponibles
+        updateSpinner()
+    }
+
+    private fun updateSpinner() {
+        val adapter = spinnerMesas.adapter as ArrayAdapter<String>
+        adapter.clear()
+
+        // Agregar un hint como primer elemento
+        adapter.add("Selecciona una mesa")
+
+        // Agregar las opciones disponibles
+        listaOpcionesMesasDisponibles.forEach { mesa ->
+            adapter.add(mesa.toString())
+        }
+
+        adapter.notifyDataSetChanged()
+        spinnerMesas.isEnabled = true
     }
 
     private fun verEstadoMesas(idMesa: String, callback: (Boolean) -> Unit) {
@@ -209,24 +267,26 @@ class InicioActivity : AppCompatActivity() {
 
     private fun checkIfAllDataLoaded() {
         if (pendingMesaRequests == 0 && menusLoaded) {
-            // All data loaded
-            println("///////////////////////")
-            println("Mesas disponibles: $listaMesasDisponibles")
             loadAllOpciones()
             isLoadingComplete = true
             updateUI()
-            readyCheck()
+
         }
     }
 
     private fun updateUI() {
-        btnContinue.isEnabled = true
-        btnContinue.text = "Continuar"
         tvStatus.text = "Carga completada"
+        progressBar.visibility = View.GONE
+
+        // Mostrar mensaje si no hay mesas disponibles
+        if (listaOpcionesMesasDisponibles.isEmpty()) {
+            tvStatus.text = "No hay mesas disponibles en este momento"
+            spinnerMesas.isEnabled = false
+        }
     }
 
     private fun readyCheck() {
-        if (isLoadingComplete && userClickedButton) {
+        if (isLoadingComplete && userClickedButton && mesaSeleccionada != -1) {
             goToMainActivity()
         }
     }
@@ -235,6 +295,7 @@ class InicioActivity : AppCompatActivity() {
         val intent = Intent(this, MainActivity::class.java)
         intent.putParcelableArrayListExtra("listaMenus", listaMenus)
         intent.putStringArrayListExtra("listaMesasDisponibles", ArrayList(listaMesasDisponibles))
+        intent.putExtra("mesaSeleccionada", mesaSeleccionada) // Enviar la mesa seleccionada
         startActivity(intent)
         finish()
     }

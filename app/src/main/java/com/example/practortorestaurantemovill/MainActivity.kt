@@ -41,6 +41,13 @@ class MainActivity : AppCompatActivity() {
 
         listaMenus = intent.getParcelableArrayListExtra<SingleMenu>("listaMenus")!!
 
+        val mesaSeleccionada = intent.getIntExtra("mesaSeleccionada", -1)
+
+        if (mesaSeleccionada != -1) {
+            // Usar la mesa seleccionada
+            println("Mesa seleccionada: $mesaSeleccionada")
+        }
+
         //println(listaMenus)
 
         WebSocketManager.connect("ws://10.0.2.2:8025/websocket/android-client")

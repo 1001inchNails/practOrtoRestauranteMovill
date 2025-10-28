@@ -3,8 +3,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
-    android:padding="32dp">
+    android:padding="16dp"
+    android:gravity="center">
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Cargando mesas disponibles..."
+        android:textSize="18sp"
+        android:layout_marginBottom="24dp" />
 
     <ProgressBar
         android:id="@+id/progressBar"
@@ -12,20 +20,19 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp" />
 
-    <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="wrap_content"
+
+    <Spinner
+        android:id="@+id/spinnerMesas"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Cargando contenido..."
-        android:textSize="18sp"
-        android:layout_marginBottom="32dp"
-        android:textStyle="bold" />
+        android:layout_marginBottom="24dp"
+        android:enabled="false" />
 
     <Button
         android:id="@+id/btnContinue"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Cargando..."
+        android:text="Continuar"
         android:enabled="false" />
 
 </LinearLayout>
