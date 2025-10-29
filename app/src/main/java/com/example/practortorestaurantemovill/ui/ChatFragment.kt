@@ -39,14 +39,15 @@ class ChatFragment : Fragment() {
 
         sendButton.setOnClickListener {
             val text = messageInput.text.toString().trim()
+            val sender = WebSocketManager.mesaGetter
             if (text.isNotEmpty()) {
                 val json = JSONObject().apply {
-                    put("sender", "Android-Client")
+                    put("sender", sender)
                     put("message", text)
                     put("timestamp", System.currentTimeMillis())
                 }
                 WebSocketManager.send(json.toString())
-                appendMessage("Me: $text")
+                appendMessage("Yo: $text")
                 messageInput.setText("")
             }
         }

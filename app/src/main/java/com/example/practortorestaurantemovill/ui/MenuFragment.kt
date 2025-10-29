@@ -1,5 +1,6 @@
 package com.example.practortorestaurantemovill.ui
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -9,10 +10,32 @@ import com.example.practortorestaurantemovill.R
 import com.example.crudform.SingleMenu
 import android.widget.*
 import androidx.core.view.isVisible
+import com.example.practortorestaurantemovill.network.WebSocketManager
+
+interface OnMenuActionsListener {
+    fun restartApp()
+}
 
 class MenuFragment : Fragment() {
     private lateinit var listaMenus: ArrayList<SingleMenu>
     private val selectedItems = mutableListOf<SingleMenu>()
+
+    private var hacerPedidoButton: Button? = null
+    private var salirButton: Button? = null
+
+    private var listener: OnMenuActionsListener? = null
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        listener = context as? OnMenuActionsListener
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        listener = null
+    }
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,7 +60,6 @@ class MenuFragment : Fragment() {
     private fun crearMenuDinamico() {
         val menuRoot = view?.findViewById<FrameLayout>(R.id.menuRoot)
 
-
         // Crear un ScrollView para contener todos los elementos
         val scrollView = ScrollView(requireContext())
         scrollView.layoutParams = LinearLayout.LayoutParams(
@@ -59,9 +81,84 @@ class MenuFragment : Fragment() {
             linearLayout.addView(productContainer)
         }
 
+        // Crear contenedor para los botones
+        val buttonContainer = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+
+        }
+
+        // Crear botón "Hacer Pedido" (deshabilitado por defecto)
+        hacerPedidoButton = Button(requireContext()).apply {
+            text = "Hacer Pedido"
+            isEnabled = false
+
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+
+
+            setOnClickListener {
+                botonHacerPedido()
+            }
+        }
+
+        // Crear botón "Salir"
+        salirButton = Button(requireContext()).apply {
+            text = "Salir"
+            visibility = View.VISIBLE
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+
+            setOnClickListener {
+                botonSalir()
+            }
+
+
+        }
+
+        // Agregar botones al contenedor
+        buttonContainer.addView(hacerPedidoButton)
+        buttonContainer.addView(salirButton)
+
+        // Agregar al ScrollView
+        linearLayout.addView(buttonContainer)
         scrollView.addView(linearLayout)
+
         menuRoot?.removeAllViews()
         menuRoot?.addView(scrollView)
+    }
+
+    private fun botonHacerPedido() {
+        // Implementación del proceso de pedido
+        Toast.makeText(requireContext(), "Procesando pedido...", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun botonSalir() {
+        WebSocketManager.disconnect()
+        listener?.restartApp()
+    }
+
+    // Función para habilitar/deshabilitar el botón "Hacer Pedido"
+    fun habilitarHacerPedido(estaHabilitado: Boolean) {
+        hacerPedidoButton?.isEnabled = estaHabilitado
+    }
+
+    // Función para mostrar/ocultar el botón "Salir"
+    fun mostrarOcultarSalir(mostrar: Boolean) {
+        salirButton?.visibility = if (mostrar) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
     }
 
     private fun createProductView(menuItem: SingleMenu): View {
@@ -123,7 +220,14 @@ class MenuFragment : Fragment() {
             } else {
                 selectedItems.remove(menuItem)
             }
-            // Mostrar en consola los elementos seleccionados
+            if (selectedItems.isNotEmpty()){
+                habilitarHacerPedido(true)
+                mostrarOcultarSalir(false)
+            }else{
+                habilitarHacerPedido(false)
+            }
+
+
             println("Productos seleccionados: $selectedItems")
         }
 

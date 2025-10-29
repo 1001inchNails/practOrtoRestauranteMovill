@@ -27,8 +27,9 @@ import com.google.android.material.tabs.TabLayoutMediator
 import com.example.practortorestaurantemovill.ui.ChatFragment
 import com.example.practortorestaurantemovill.ui.MenuFragment
 import com.example.practortorestaurantemovill.network.WebSocketManager
+import com.example.practortorestaurantemovill.ui.OnMenuActionsListener
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), OnMenuActionsListener {
 
     private lateinit var viewPager: ViewPager2
     private lateinit var tabLayout: TabLayout
@@ -44,8 +45,8 @@ class MainActivity : AppCompatActivity() {
         val mesaSeleccionada = intent.getIntExtra("mesaSeleccionada", -1)
 
         if (mesaSeleccionada != -1) {
-            // Usar la mesa seleccionada
-            println("Mesa seleccionada: $mesaSeleccionada")
+            var mesa: String = "Mesa" + mesaSeleccionada.toString()
+            WebSocketManager.mesaSetter = mesa
         }
 
         //println(listaMenus)
@@ -67,21 +68,12 @@ class MainActivity : AppCompatActivity() {
         }.attach()
     }
 
-    private fun restartApp() {
-        // Crear intent para volver a LoadingActivity
+    override fun restartApp() {
+        // La implementación existente de restartApp
         val intent = Intent(this, InicioActivity::class.java)
-
-        // Limpiar toda la pila de actividades y crear una nueva
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-
-        // Cerrar WebSocket si es necesario
-        //WebSocketManager.disconnect()
-
         startActivity(intent)
         finish()
-
-        // Forzar cierre del proceso actual (opcional)
-        // android.os.Process.killProcess(android.os.Process.myPid())
     }
 
     override fun onDestroy() {

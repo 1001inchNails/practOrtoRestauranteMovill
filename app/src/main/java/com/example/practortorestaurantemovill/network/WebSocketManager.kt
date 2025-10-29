@@ -13,6 +13,20 @@ object WebSocketManager {
     private var webSocket: WebSocket? = null
     private var url: String? = null
 
+    private var mesa: String = "";
+
+    var mesaSetter: String
+        get() = mesa
+        set(value) {
+            if (!value.isBlank()) {
+                mesa = value
+            } else {
+                throw IllegalArgumentException("Shit's fucked, yo")
+            }
+        }
+    val mesaGetter: String
+        get() = mesa
+
     // LiveData for incoming messages and status
     private val _incomingMessages = MutableLiveData<String>()
     val incomingMessages: LiveData<String> = _incomingMessages
@@ -66,7 +80,7 @@ object WebSocketManager {
     private fun parseAndPostMessage(jsonString: String) {
         try {
             val jsonObject = JSONObject(jsonString)
-            val sender = jsonObject.optString("sender", "Unknown")
+            val sender = jsonObject.optString(mesa, "Unknown")
             val message = jsonObject.optString("message", "")
 
             // Format the message as "Sender: message"
