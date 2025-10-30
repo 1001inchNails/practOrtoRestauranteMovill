@@ -22,6 +22,7 @@ class MenuFragment : Fragment() {
 
     private var hacerPedidoButton: Button? = null
     private var salirButton: Button? = null
+    private var pagarButton: Button? = null
 
     private var listener: OnMenuActionsListener? = null
 
@@ -41,6 +42,7 @@ class MenuFragment : Fragment() {
         super.onCreate(savedInstanceState)
         listaMenus = arguments?.getParcelableArrayList<SingleMenu>("listaMenus") ?: ArrayList()
         System.out.println(listaMenus)
+
     }
 
     override fun onCreateView(
@@ -108,6 +110,23 @@ class MenuFragment : Fragment() {
             }
         }
 
+        // Crear botón "Pagar" (deshabilitado por defecto)
+        pagarButton = Button(requireContext()).apply {
+            text = "Pagar"
+            visibility = View.GONE
+
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+
+
+            setOnClickListener {
+                botonPagarPedidos()
+            }
+        }
+
         // Crear botón "Salir"
         salirButton = Button(requireContext()).apply {
             text = "Salir"
@@ -128,6 +147,7 @@ class MenuFragment : Fragment() {
         // Agregar botones al contenedor
         buttonContainer.addView(hacerPedidoButton)
         buttonContainer.addView(salirButton)
+        buttonContainer.addView(pagarButton)
 
         // Agregar al ScrollView
         linearLayout.addView(buttonContainer)
@@ -138,7 +158,7 @@ class MenuFragment : Fragment() {
     }
 
     private fun botonHacerPedido() {
-        // Implementación del proceso de pedido
+        mostrarOcultarSalir(false)
         Toast.makeText(requireContext(), "Procesando pedido...", Toast.LENGTH_SHORT).show()
     }
 
@@ -147,9 +167,23 @@ class MenuFragment : Fragment() {
         listener?.restartApp()
     }
 
+    private fun botonPagarPedidos() {
+        mostrarOcultarSalir(false)
+        Toast.makeText(requireContext(), "Procesando pedido...", Toast.LENGTH_SHORT).show()
+    }
+
     // Función para habilitar/deshabilitar el botón "Hacer Pedido"
     fun habilitarHacerPedido(estaHabilitado: Boolean) {
         hacerPedidoButton?.isEnabled = estaHabilitado
+    }
+
+    // Función para mostrar/ocultar el botón "Pagar"
+    fun mostrarOcultarPagar(mostrar: Boolean) {
+        pagarButton?.visibility = if (mostrar) {
+            View.VISIBLE
+        } else {
+            View.GONE
+        }
     }
 
     // Función para mostrar/ocultar el botón "Salir"
@@ -222,7 +256,6 @@ class MenuFragment : Fragment() {
             }
             if (selectedItems.isNotEmpty()){
                 habilitarHacerPedido(true)
-                mostrarOcultarSalir(false)
             }else{
                 habilitarHacerPedido(false)
             }
@@ -246,7 +279,7 @@ class MenuFragment : Fragment() {
         // Agregar todos los elementos al contenedor del producto
         productContainer.addView(topRow)
         productContainer.addView(descriptionTextView)
-        productContainer.addView(divider)
+        //productContainer.addView(divider)
 
         return productContainer
     }
