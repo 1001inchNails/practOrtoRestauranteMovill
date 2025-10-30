@@ -37,20 +37,14 @@ class ChatFragment : Fragment() {
             appendMessage("[status] $status")
         })
 
-        sendButton.setOnClickListener {
-            val text = messageInput.text.toString().trim()
-            val sender = WebSocketManager.mesaGetter
-            if (text.isNotEmpty()) {
-                val json = JSONObject().apply {
-                    put("sender", sender)
-                    put("message", text)
-                    put("timestamp", System.currentTimeMillis())
+        sendButton?.setOnClickListener {
+                val mnsj = messageInput.text.toString().trim()
+                if (WebSocketManager.mesaGetter.isNotEmpty()) {
+                    WebSocketManager.send(mnsj, "chat")
                 }
-                WebSocketManager.send(json.toString())
-                appendMessage("Yo: $text")
-                messageInput.setText("")
+            appendMessage("Yo: $mnsj")
+            messageInput.setText("")
             }
-        }
 
         return v
     }

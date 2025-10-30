@@ -11,6 +11,7 @@ import com.example.crudform.SingleMenu
 import android.widget.*
 import androidx.core.view.isVisible
 import com.example.practortorestaurantemovill.network.WebSocketManager
+import org.json.JSONObject
 
 interface OnMenuActionsListener {
     fun restartApp()
@@ -49,6 +50,7 @@ class MenuFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
+
     ): View {
         return inflater.inflate(R.layout.fragment_menu, container, false)
     }
@@ -57,6 +59,14 @@ class MenuFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         crearMenuDinamico()
+
+
+        hacerPedidoButton?.setOnClickListener {
+            val mnsj = "Pedido Pendiente"
+            if (WebSocketManager.mesaGetter.isNotEmpty()) {
+                WebSocketManager.send(mnsj, "pedido")
+            }
+        }
     }
 
     private fun crearMenuDinamico() {

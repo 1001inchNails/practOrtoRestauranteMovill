@@ -77,27 +77,42 @@ object WebSocketManager {
         })
     }
 
-    private fun parseAndPostMessage(jsonString: String) {
-        try {
-            val jsonObject = JSONObject(jsonString)
-            val sender = jsonObject.optString(mesa, "Unknown")
-            val message = jsonObject.optString("message", "")
+    fun send(message: String, messageType: String = "") {
+        val jsonMessage = JSONObject()
 
-            // Format the message as "Sender: message"
-            val formattedMessage = "$sender: $message"
-            _incomingMessages.postValue(formattedMessage)
+        if (messageType.isNotEmpty()) {
+            jsonMessage.put("type", messageType)
+        }
 
-        } catch (e: Exception) {
-            // If parsing fails, post the original message with error info
-            _incomingMessages.postValue("[Error parsing message]: $jsonString")
+        jsonMessage.put("message", message)
+        jsonMessage.put("sender", WebSocketManager.mesaGetter)
+        jsonMessage.put("timestamp", System.currentTimeMillis())
+
+        webSocket?.let {
+            it.send(jsonMessage.toString())
+        } ?: run {
+            _incomingMessages.postValue("[error] not connected")
         }
     }
 
-    fun send(message: String) {
-        webSocket?.let {
-            it.send(message)
-        } ?: run {
-            _incomingMessages.postValue("[error] not connected")
+    private fun parseAndPostMessage(jsonString: String) {
+        try {
+            val jsonObject = JSONObject(jsonString)
+
+            // Obtener el tipo de mensaje si existe
+            val messageType = jsonObject.optString("type", "")
+            val sender = jsonObject.optString("sender", "Unknown")
+            val messageContent = jsonObject.optString("message", "")
+
+            if (messageType == "chat"){
+                var formattedMessage = "$sender: "
+                formattedMessage += messageContent
+                _incomingMessages.postValue(formattedMessage)
+            }
+
+
+        } catch (e: Exception) {
+            _incomingMessages.postValue("[Error parsing message]: $jsonString")
         }
     }
 
