@@ -86,6 +86,7 @@ object WebSocketManager {
 
         jsonMessage.put("message", message)
         jsonMessage.put("sender", WebSocketManager.mesaGetter)
+        jsonMessage.put("destino", "Restaurante")
         jsonMessage.put("timestamp", System.currentTimeMillis())
 
         webSocket?.let {
@@ -99,7 +100,6 @@ object WebSocketManager {
         try {
             val jsonObject = JSONObject(jsonString)
 
-            // Obtener el tipo de mensaje si existe
             val messageType = jsonObject.optString("type", "")
             val sender = jsonObject.optString("sender", "Unknown")
             val messageContent = jsonObject.optString("message", "")
