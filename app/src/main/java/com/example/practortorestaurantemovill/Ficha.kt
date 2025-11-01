@@ -31,3 +31,20 @@ data class SingleMenu(
     val precio: Number,
     val descripcion: String
 ) : Parcelable
+
+data class PedidoData(
+    val mesa: String,
+    val pedidos: List<PedidoItem>
+)
+
+data class PedidoItem(
+    val id: Number,
+    val nombre: String,
+    val precio: Number,
+    val descripcion: String
+)
+
+data class RespuestaPedido(
+    val type: String,
+    val data: Any? = null
+)

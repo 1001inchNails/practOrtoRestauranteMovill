@@ -11,8 +11,8 @@ interface ApiService {
     @GET("get/readestadomesa")
     fun leerEstadoMesa(@Query("mesaId") mesaId: String): Call<RespuestaEstadoMesa>
 
-//    @POST("update")
-//    fun actualizarFicha(@Body data: FichaUpdate): Call<Respuesta>
+    @POST("post/mandarpedidoamesa")
+    fun mandarPedido(@Body data: PedidoData): Call<RespuestaPedido>
 //
 //    @POST("delete")
 //    fun borrarFicha(@Body data: FichaDelete): Call<Respuesta>

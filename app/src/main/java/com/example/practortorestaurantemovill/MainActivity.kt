@@ -43,15 +43,17 @@ class MainActivity : AppCompatActivity(), OnMenuActionsListener {
         listaMenus = intent.getParcelableArrayListExtra<SingleMenu>("listaMenus")!!
 
         val mesaSeleccionada = intent.getIntExtra("mesaSeleccionada", -1)
-
+        val mesa: String
         if (mesaSeleccionada != -1) {
-            var mesa: String = "Mesa" + mesaSeleccionada.toString()
+            mesa = "Mesa" + mesaSeleccionada.toString()
             WebSocketManager.mesaSetter = mesa
+        }else{
+            mesa = "ERROR_ID_MESA"
         }
 
         //println(listaMenus)
 
-        WebSocketManager.connect("ws://10.0.2.2:8025/websocket/android-client")
+        WebSocketManager.connect("ws://10.0.2.2:8025/websocket/$mesa")
 
         viewPager = findViewById(R.id.viewPager)
         tabLayout = findViewById(R.id.tabLayout)
@@ -69,7 +71,6 @@ class MainActivity : AppCompatActivity(), OnMenuActionsListener {
     }
 
     override fun restartApp() {
-        // La implementación existente de restartApp
         val intent = Intent(this, InicioActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)

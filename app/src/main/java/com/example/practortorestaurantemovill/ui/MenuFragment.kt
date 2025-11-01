@@ -9,9 +9,16 @@ import androidx.fragment.app.Fragment
 import com.example.practortorestaurantemovill.R
 import com.example.crudform.SingleMenu
 import android.widget.*
+import androidx.core.view.forEach
 import androidx.core.view.isVisible
+import com.example.crudform.PedidoData
+import com.example.crudform.PedidoItem
+import com.example.crudform.RespuestaPedido
+import com.example.crudform.RetrofitClient
 import com.example.practortorestaurantemovill.network.WebSocketManager
 import org.json.JSONObject
+import retrofit2.Call
+import retrofit2.Response
 
 interface OnMenuActionsListener {
     fun restartApp()
@@ -24,6 +31,8 @@ class MenuFragment : Fragment() {
     private var hacerPedidoButton: Button? = null
     private var salirButton: Button? = null
     private var pagarButton: Button? = null
+
+    private var mesa: String = ""
 
     private var listener: OnMenuActionsListener? = null
 
@@ -43,6 +52,7 @@ class MenuFragment : Fragment() {
         super.onCreate(savedInstanceState)
         listaMenus = arguments?.getParcelableArrayList<SingleMenu>("listaMenus") ?: ArrayList()
         System.out.println(listaMenus)
+        mesa = WebSocketManager.mesaGetter
 
     }
 
@@ -60,13 +70,6 @@ class MenuFragment : Fragment() {
 
         crearMenuDinamico()
 
-
-        hacerPedidoButton?.setOnClickListener {
-            val mnsj = "Pedido Pendiente"
-            if (WebSocketManager.mesaGetter.isNotEmpty()) {
-                WebSocketManager.send(mnsj, "pedido")
-            }
-        }
     }
 
     private fun crearMenuDinamico() {
@@ -170,6 +173,52 @@ class MenuFragment : Fragment() {
     private fun botonHacerPedido() {
         mostrarOcultarSalir(false)
         Toast.makeText(requireContext(), "Procesando pedido...", Toast.LENGTH_SHORT).show()
+
+        // Llamar a la función para enviar el pedido
+        enviarPedidoAMesa(
+            mesa = mesa,
+            pedidos = selectedItems,
+            callback = { exito ->
+                if (exito) {
+                    System.out.println("pedido guardado")
+                    mostrarOcultarPagar(true)
+                    habilitarHacerPedido(false)
+                    selectedItems.clear()
+                    desmarcarCheckboxes()
+                    WebSocketManager.sendPedidoMensaje("Pedido pendiente")
+                } else {
+                    System.out.println("pedido no guardado")
+                    habilitarHacerPedido(true)
+                }
+            }
+        )
+    }
+
+    private fun desmarcarCheckboxes() {
+        val menuRoot = view?.findViewById<FrameLayout>(R.id.menuRoot)
+        menuRoot?.let { root ->
+            // Buscar recursivamente todos los CheckBox en el contenedor
+            buscarCheckBoxes(root).forEach { checkBox ->
+                checkBox.isChecked = false
+            }
+        }
+    }
+    private fun buscarCheckBoxes(view: View): List<CheckBox> {
+        val checkBoxes = mutableListOf<CheckBox>()
+
+        when (view) {
+            is CheckBox -> {
+                checkBoxes.add(view)
+            }
+            is ViewGroup -> {
+                for (i in 0 until view.childCount) {
+                    val child = view.getChildAt(i)
+                    checkBoxes.addAll(buscarCheckBoxes(child))
+                }
+            }
+        }
+
+        return checkBoxes
     }
 
     private fun botonSalir() {
@@ -292,5 +341,72 @@ class MenuFragment : Fragment() {
         //productContainer.addView(divider)
 
         return productContainer
+    }
+
+    private fun enviarPedidoAMesa(mesa: String, pedidos: List<SingleMenu>, callback: (Boolean) -> Unit) {
+        // crear el objeto de datos para el pedido
+        val pedidoData = PedidoData(
+            mesa = mesa,
+            pedidos = pedidos.map { menuItem ->
+                PedidoItem(
+                    id = menuItem.id,
+                    nombre = menuItem.nombre,
+                    precio = menuItem.precio,
+                    descripcion = menuItem.descripcion
+                )
+            }
+        )
+
+        RetrofitClient.instance.mandarPedido(pedidoData).enqueue(object : retrofit2.Callback<RespuestaPedido> {
+            override fun onResponse(call: Call<RespuestaPedido>, response: Response<RespuestaPedido>) {
+                if (response.isSuccessful) {
+                    val respuesta = response.body()
+                    if (respuesta != null) {
+                        when (respuesta.type) {
+                            "success" -> {
+                                callback(true)
+                                Toast.makeText(
+                                    requireContext(),
+                                    "Pedido enviado correctamente",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            "failure" -> {
+                                callback(false)
+                                Toast.makeText(
+                                    requireContext(),
+                                    "Error al enviar pedido",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    } else {
+                        callback(false)
+                        Toast.makeText(
+                            requireContext(),
+                            "Respuesta vacía del servidor",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    callback(false)
+                    Toast.makeText(
+                        requireContext(),
+                        "Error del servidor: ${response.code()}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+
+            override fun onFailure(call: retrofit2.Call<RespuestaPedido>, t: Throwable) {
+                callback(false)
+                Toast.makeText(
+                    requireContext(),
+                    "Error de conexión: ${t.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+                System.out.println(t.message)
+            }
+        })
     }
 }
