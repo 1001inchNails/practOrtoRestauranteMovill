@@ -60,6 +60,7 @@ class MainActivity : AppCompatActivity(), OnMenuActionsListener {
 
         val adapter = MainPagerAdapter(this, listaMenus)
         viewPager.adapter = adapter
+        viewPager.offscreenPageLimit = 2 // para crear los 2 fragments a la vez y evitar problemas con la recepcion de mensajes
 
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {

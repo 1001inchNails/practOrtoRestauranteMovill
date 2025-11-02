@@ -37,6 +37,9 @@ object WebSocketManager {
     private val _connectionStatus = MutableLiveData<String>()
     val connectionStatus: LiveData<String> = _connectionStatus
 
+    private val _systemEvents = MutableLiveData<String>()
+    val systemEvents: LiveData<String> = _systemEvents
+
     fun connect(wsUrl: String) {
         if (webSocket != null) return // already connected or connecting
         url = wsUrl
@@ -118,6 +121,12 @@ object WebSocketManager {
                     val status = jsonObject.optString("status", "")
                     val message = jsonObject.optString("message", "")
                     _incomingMessages.postValue("System: $status")
+                }
+                "pedido_enviado_a_mesa" -> {
+                    _systemEvents.postValue("pedido_enviado_a_mesa")
+                }
+                "pedido_cancelado_a_mesa" -> {
+                    _systemEvents.postValue("pedido_cancelado_a_mesa")
                 }
                 "client_connect" -> {
                     val message = jsonObject.optString("message", "")

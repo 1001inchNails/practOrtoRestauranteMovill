@@ -70,6 +70,20 @@ class MenuFragment : Fragment() {
 
         crearMenuDinamico()
 
+        WebSocketManager.systemEvents.observe(viewLifecycleOwner) { event ->
+            if (event == "pedido_enviado_a_mesa") {
+                habilitarHacerPedido(false)
+                mostrarOcultarPagar(true)
+                habilitarPagar(true)
+            }
+        }
+
+        WebSocketManager.systemEvents.observe(viewLifecycleOwner) { event ->
+            if (event == "pedido_cancelado_a_mesa") {
+                habilitarHacerPedido(false)
+            }
+        }
+
     }
 
     private fun crearMenuDinamico() {
@@ -127,6 +141,7 @@ class MenuFragment : Fragment() {
         pagarButton = Button(requireContext()).apply {
             text = "Pagar"
             visibility = View.GONE
+            isEnabled = false
 
             layoutParams = LinearLayout.LayoutParams(
                 0,
@@ -234,6 +249,10 @@ class MenuFragment : Fragment() {
     // Función para habilitar/deshabilitar el botón "Hacer Pedido"
     fun habilitarHacerPedido(estaHabilitado: Boolean) {
         hacerPedidoButton?.isEnabled = estaHabilitado
+    }
+
+    fun habilitarPagar(estaHabilitado: Boolean) {
+        pagarButton?.isEnabled = estaHabilitado
     }
 
     // Función para mostrar/ocultar el botón "Pagar"
