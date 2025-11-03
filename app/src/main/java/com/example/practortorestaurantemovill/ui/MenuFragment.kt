@@ -4,9 +4,11 @@ import ProductosPagoAdapter
 import android.app.AlertDialog
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -45,6 +47,8 @@ class MenuFragment : Fragment() {
     private var pagarButton: Button? = null
 
     private var mesa: String = ""
+
+    private var totalTextView: TextView? = null
 
     private var pedidoPendiente = false
 
@@ -209,6 +213,10 @@ class MenuFragment : Fragment() {
             linearLayout.addView(productContainer)
         }
 
+        // para mostrar el total ---
+        val totalContainer = crearRecuadroTotal()
+        linearLayout.addView(totalContainer)
+
         // contenedor para los botones
         val buttonContainer = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -281,6 +289,37 @@ class MenuFragment : Fragment() {
         menuRoot?.addView(scrollView)
     }
 
+    // para mostrar dinamicamente los totales
+    private fun crearRecuadroTotal(): View {
+        val totalContainer = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(16, 16, 16, 16)
+            }
+            setBackgroundColor(Color.parseColor("#F5F5F5"))
+            setPadding(16, 16, 16, 16)
+        }
+
+        totalTextView = TextView(requireContext()).apply {
+            text = "Total: 0.00€"
+            textSize = 18f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        totalContainer.addView(totalTextView)
+
+        return totalContainer
+    }
+
     private fun botonHacerPedido() {
         // verificar que no haya pedido pendiente (redundante por si acaso)
         if (pedidoPendiente) {
@@ -350,6 +389,7 @@ class MenuFragment : Fragment() {
         // reiniciar items seleccionados
         itemsSeleccionados.clear()
         habilitarHacerPedido(false)
+        actualizarTotal()
     }
 
     // al recibir confirmacion de pedido
@@ -384,6 +424,7 @@ class MenuFragment : Fragment() {
 
         itemsSeleccionados.clear()
         habilitarHacerPedido(false)
+        actualizarTotal()
     }
 
 
@@ -531,7 +572,6 @@ class MenuFragment : Fragment() {
             checkBox.setTextColor(Color.GRAY)
         }
 
-
         // listener para pedido pendiente
         checkBox.setOnCheckedChangeListener { _, isChecked ->
             // procesar cambios si no hay pedido pendiente
@@ -544,7 +584,7 @@ class MenuFragment : Fragment() {
 
                 // habilitar boton "Hacer Pedido" solo si hay items seleccionados
                 habilitarHacerPedido(itemsSeleccionados.isNotEmpty())
-
+                actualizarTotal()
                 //println("Productos seleccionados: $itemsSeleccionados")
             } else {
                 // si hay pedido pendiente, evitar que se marque/desmarque
@@ -615,6 +655,7 @@ class MenuFragment : Fragment() {
                 val index = itemsSeleccionados.indexOfFirst { it.id == menuItem.id }
                 if (index != -1) {
                     itemsSeleccionados[index].cantidad = menuItem.cantidad
+                    actualizarTotal()
                 }
             }
 
@@ -644,6 +685,24 @@ class MenuFragment : Fragment() {
         //productContainer.addView(divider)
 
         return productContainer
+    }
+
+    // para el recuadro de precios dinamicos
+    private fun actualizarTotal() {
+        val total = calcularTotal()
+        totalTextView?.text = "Total: ${String.format("%.2f", total)}€"
+    }
+
+    private fun calcularTotal(): Double {
+        return itemsSeleccionados.sumOf { item ->
+            try {
+                val precio = item.precio.toDouble()
+                val cantidad = item.cantidad
+                precio * cantidad
+            } catch (e: Exception) {
+                0.0
+            }
+        }
     }
 
     // envia pedido de la mesa al ristorante
@@ -887,6 +946,8 @@ class MenuFragment : Fragment() {
         habilitarHacerPedido(false)
         actualizarEstadoBotonPagar()
         actualizarEstadoBotonSalir()
+
+        actualizarTotal()
     }
 
 
