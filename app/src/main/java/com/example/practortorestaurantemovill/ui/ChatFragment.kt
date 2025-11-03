@@ -1,7 +1,8 @@
 package com.example.practortorestaurantemovill.ui
 
-
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -22,34 +23,67 @@ class ChatFragment : Fragment() {
     private lateinit var sendButton: Button
     private lateinit var scrollView: ScrollView
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val v = inflater.inflate(R.layout.fragment_chat, container, false)
-        messagesView = v.findViewById(R.id.messagesView)
-        messageInput = v.findViewById(R.id.messageInput)
-        sendButton = v.findViewById(R.id.sendButton)
-        scrollView = v.findViewById(R.id.scrollView)
+    // regex para letras, acentos, espacios y signos de puntuación basicos
+    private val spanishTextRegex = "^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\\s.,!?¿¡]*\$".toRegex()
 
-        WebSocketManager.incomingMessages.observe(viewLifecycleOwner, Observer { msg ->
-            appendMessage(msg)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val valor = inflater.inflate(R.layout.fragment_chat, container, false)
+        messagesView = valor.findViewById(R.id.messagesView)
+        messageInput = valor.findViewById(R.id.messageInput)
+        sendButton = valor.findViewById(R.id.sendButton)
+        scrollView = valor.findViewById(R.id.scrollView)
+
+        // validacion en tiempo real
+        messageInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                validarInput()
+            }
+        })
+
+        WebSocketManager.mensajesEntrantes.observe(viewLifecycleOwner, Observer { msg ->
+            appendMensaje(msg)
         })
 
         WebSocketManager.connectionStatus.observe(viewLifecycleOwner, Observer { status ->
-            appendMessage("[status] $status")
+            appendMensaje("$status")
         })
 
         sendButton?.setOnClickListener {
-                val mnsj = messageInput.text.toString().trim()
-                if (WebSocketManager.mesaGetter.isNotEmpty()) {
-                    WebSocketManager.send(mnsj, "chat")
-                }
-            appendMessage("Yo: $mnsj")
-            messageInput.setText("")
+            val mnsj = messageInput.text.toString().trim()
+            if (WebSocketManager.mesaGetter.isNotEmpty() && esInputValido(mnsj)) {
+                WebSocketManager.send(mnsj, "chat")
+                appendMensaje("Yo: $mnsj")
+                messageInput.setText("")
             }
+        }
 
-        return v
+        sendButton.isEnabled = false
+
+        return valor
     }
 
-    private fun appendMessage(newMsg: String) {
+    private fun validarInput() {
+        val text = messageInput.text.toString().trim()
+        val isValid = esInputValido(text)
+
+        sendButton.isEnabled = isValid && text.isNotBlank()
+
+        if (text.isNotEmpty() && !isValid) {
+            messageInput.error = "Caracter no valido"
+        } else {
+            messageInput.error = null
+        }
+    }
+
+    private fun esInputValido(text: String): Boolean {
+        return spanishTextRegex.matches(text)
+    }
+
+    private fun appendMensaje(newMsg: String) {
         messagesView.append(newMsg + "\n")
         // scroll
         scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }

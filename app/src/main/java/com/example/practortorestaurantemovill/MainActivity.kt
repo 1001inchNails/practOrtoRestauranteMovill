@@ -1,5 +1,6 @@
 package com.example.practortorestaurantemovill
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -21,6 +22,7 @@ import org.json.JSONObject
 
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewpager2.widget.ViewPager2
+import com.example.crudform.RetrofitClient
 import com.example.crudform.SingleMenu
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
@@ -40,6 +42,7 @@ class MainActivity : AppCompatActivity(), OnMenuActionsListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // esto viene desde InicioActivity
         listaMenus = intent.getParcelableArrayListExtra<SingleMenu>("listaMenus")!!
 
         val mesaSeleccionada = intent.getIntExtra("mesaSeleccionada", -1)
@@ -53,11 +56,13 @@ class MainActivity : AppCompatActivity(), OnMenuActionsListener {
 
         //println(listaMenus)
 
+        // conexion al websocket
         WebSocketManager.connect("ws://10.0.2.2:8025/websocket/$mesa")
 
         viewPager = findViewById(R.id.viewPager)
         tabLayout = findViewById(R.id.tabLayout)
 
+        // para los fragmentos menus y chat
         val adapter = MainPagerAdapter(this, listaMenus)
         viewPager.adapter = adapter
         viewPager.offscreenPageLimit = 2 // para crear los 2 fragments a la vez y evitar problemas con la recepcion de mensajes
@@ -72,15 +77,37 @@ class MainActivity : AppCompatActivity(), OnMenuActionsListener {
     }
 
     override fun restartApp() {
+        // matar WebSocketManager
+        WebSocketManager.disconnect()
+
+        // limpiar estados residuales
+        val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        sharedPreferences.edit().clear().apply()
+
+        // full reset
         val intent = Intent(this, InicioActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
+
+        // forzar limpieza de memoria
+        System.gc()
     }
 
+    // por si acaso
     override fun onDestroy() {
         super.onDestroy()
-        // WebSocketManager.disconnect()
+        val mesa = WebSocketManager.mesaGetter
+        if (mesa.isNotEmpty()) {
+            // llamar API para liberar mesa en segundo plano, teoricamente
+            Thread {
+                try {
+                    RetrofitClient.instance.cambiarEstadoMesa(mesa, false).execute()
+                } catch (e: Exception) {
+                }
+            }.start()
+        }
+        WebSocketManager.disconnect()
     }
 }
 

@@ -38,7 +38,7 @@ class InicioActivity : AppCompatActivity() {
 
     private var pendingMesaRequests = 0
     private var menusLoaded = false
-    private var mesaSeleccionada: Int = -1 // Para almacenar la mesa seleccionada
+    private var mesaSeleccionada: Int = -1 // valor por defecto (ninguna opcion)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,11 +53,12 @@ class InicioActivity : AppCompatActivity() {
         loadContent()
     }
 
+    // montar UI
     private fun setupUI() {
         btnContinue.isEnabled = false
         btnContinue.text = "Continuar"
 
-        // Configurar el Spinner
+        // configurar el Spinner
         setupSpinner()
 
         btnContinue.setOnClickListener {
@@ -70,16 +71,16 @@ class InicioActivity : AppCompatActivity() {
         }
     }
 
+    // spinner para elegir mesa
     private fun setupSpinner() {
-        // Crear un adaptador simple con un array vacío inicialmente
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, ArrayList<String>())
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinnerMesas.adapter = adapter
 
-        // Listener para cuando se selecciona un item
+        // listener para cuando se selecciona una opcion
         spinnerMesas.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if (position > 0) { // Posición 0 es el hint
+                if (position > 0) {
                     val selectedItem = parent?.getItemAtPosition(position).toString()
                     mesaSeleccionada = selectedItem.toInt()
                     btnContinue.isEnabled = true
@@ -97,11 +98,12 @@ class InicioActivity : AppCompatActivity() {
     }
 
     private fun loadContent() {
-        loadAllMenus()
-        loadAllMesas()
+        loadTuttiMenus()
+        loadTuttiMesas()
     }
 
-    private fun loadAllMesas() {
+    // carga valores de mesas en lista, chequea disponibilidad
+    private fun loadTuttiMesas() {
         val mesas = listOf("Mesa1", "Mesa2", "Mesa3", "Mesa4", "Mesa5")
         pendingMesaRequests = mesas.size
 
@@ -117,6 +119,7 @@ class InicioActivity : AppCompatActivity() {
         }
     }
 
+    // carga opciones disponibles despues de criba
     private fun loadAllOpciones() {
         listaMesasDisponibles.forEach { mesaId ->
             if (mesaId == "Mesa1"){
@@ -137,7 +140,7 @@ class InicioActivity : AppCompatActivity() {
         }
         listaOpcionesMesasDisponibles.sort()
 
-        // Actualizar el Spinner con las opciones disponibles
+        // actualizar spinner con las opciones disponibles
         updateSpinner()
     }
 
@@ -145,10 +148,10 @@ class InicioActivity : AppCompatActivity() {
         val adapter = spinnerMesas.adapter as ArrayAdapter<String>
         adapter.clear()
 
-        // Agregar un hint como primer elemento
+        // primer elemento
         adapter.add("Selecciona una mesa")
 
-        // Agregar las opciones disponibles
+        // agrega opciones disponibles
         listaOpcionesMesasDisponibles.forEach { mesa ->
             adapter.add(mesa.toString())
         }
@@ -157,6 +160,7 @@ class InicioActivity : AppCompatActivity() {
         spinnerMesas.isEnabled = true
     }
 
+    // llamada api para comprobar disponibilidad de las mesas
     private fun verEstadoMesas(idMesa: String, callback: (Boolean) -> Unit) {
         RetrofitClient.instance.leerEstadoMesa(mesaId = idMesa).enqueue(object : Callback<RespuestaEstadoMesa> {
             override fun onResponse(call: Call<RespuestaEstadoMesa>, response: Response<RespuestaEstadoMesa>) {
@@ -203,7 +207,8 @@ class InicioActivity : AppCompatActivity() {
         })
     }
 
-    private fun loadAllMenus() {
+    // llamada API para cargar tutti los menus
+    private fun loadTuttiMenus() {
         RetrofitClient.instance.cargarMenus().enqueue(object : Callback<RespuestaAllMenus> {
             override fun onResponse(call: Call<RespuestaAllMenus>, response: Response<RespuestaAllMenus>) {
                 if (response.isSuccessful) {
@@ -265,6 +270,7 @@ class InicioActivity : AppCompatActivity() {
         })
     }
 
+    // chequeo por si faltan datos
     private fun checkIfAllDataLoaded() {
         if (pendingMesaRequests == 0 && menusLoaded) {
             loadAllOpciones()
@@ -274,30 +280,77 @@ class InicioActivity : AppCompatActivity() {
         }
     }
 
+    // actualizar UI
     private fun updateUI() {
         tvStatus.text = "Carga completada"
         progressBar.visibility = View.GONE
 
-        // Mostrar mensaje si no hay mesas disponibles
+        // mensaje por si no hay mesas disponibles
         if (listaOpcionesMesasDisponibles.isEmpty()) {
             tvStatus.text = "No hay mesas disponibles en este momento"
             spinnerMesas.isEnabled = false
         }
     }
 
+    // chequeo de readiness para go al next stage of the aplicacion
+    // comiuniqueison llea!
     private fun readyCheck() {
         if (isLoadingComplete && userClickedButton && mesaSeleccionada != -1) {
             goToMainActivity()
         }
     }
 
+    // ir a menu principal de la aplicacion
     private fun goToMainActivity() {
-        val intent = Intent(this, MainActivity::class.java)
-        intent.putParcelableArrayListExtra("listaMenus", listaMenus)
-        intent.putStringArrayListExtra("listaMesasDisponibles", ArrayList(listaMesasDisponibles))
-        intent.putExtra("mesaSeleccionada", mesaSeleccionada) // Enviar la mesa seleccionada
-        startActivity(intent)
-        finish()
+        // cambia estado de la mesa a ocupado antes de ir a MainActivity
+        cambiarEstadoMesa("Mesa$mesaSeleccionada", true) { exito ->
+            if (exito) {
+                // pasar datos para MainActivity
+                val intent = Intent(this, MainActivity::class.java)
+                intent.putParcelableArrayListExtra("listaMenus", listaMenus)
+                intent.putStringArrayListExtra("listaMesasDisponibles", ArrayList(listaMesasDisponibles))
+                intent.putExtra("mesaSeleccionada", mesaSeleccionada)
+                startActivity(intent)
+                finish()
+            } else {
+                // si falla, mostrar error y permitir reintentar
+                Toast.makeText(this, "Error al ocupar la mesa. Intente nuevamente.", Toast.LENGTH_SHORT).show()
+                btnContinue.isEnabled = true
+                userClickedButton = false
+            }
+        }
+    }
+
+    // cambiar el estado de la mesa
+    private fun cambiarEstadoMesa(mesaId: String, ocupada: Boolean, callback: (Boolean) -> Unit) {
+        RetrofitClient.instance.cambiarEstadoMesa(mesaId, ocupada).enqueue(object : Callback<RespuestaEstadoMesa> {
+            override fun onResponse(call: Call<RespuestaEstadoMesa>, response: Response<RespuestaEstadoMesa>) {
+                if (response.isSuccessful) {
+                    val respuesta = response.body()
+                    if (respuesta != null && respuesta.type == "success") {
+                        callback(true)
+                    } else {
+                        callback(false)
+                    }
+                } else {
+                    callback(false)
+                    Toast.makeText(
+                        this@InicioActivity,
+                        "Error del servidor: ${response.code()}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+
+            override fun onFailure(call: Call<RespuestaEstadoMesa>, t: Throwable) {
+                callback(false)
+                Toast.makeText(
+                    this@InicioActivity,
+                    "Error de conexión: ${t.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        })
     }
 
     override fun onDestroy() {

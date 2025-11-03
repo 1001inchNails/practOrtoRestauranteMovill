@@ -30,9 +30,9 @@ object WebSocketManager {
     val mesaGetter: String
         get() = mesa
 
-    // LiveData for incoming messages and status
-    private val _incomingMessages = MutableLiveData<String>()
-    val incomingMessages: LiveData<String> = _incomingMessages
+    // liveData para mensajes y estados
+    private val _mensajesEntrantes = MutableLiveData<String>()
+    val mensajesEntrantes: LiveData<String> = _mensajesEntrantes
 
     private val _connectionStatus = MutableLiveData<String>()
     val connectionStatus: LiveData<String> = _connectionStatus
@@ -40,8 +40,16 @@ object WebSocketManager {
     private val _systemEvents = MutableLiveData<String>()
     val systemEvents: LiveData<String> = _systemEvents
 
+    private val _pedidoConfirmado = MutableLiveData<Boolean>()
+    val pedidoConfirmado: LiveData<Boolean> = _pedidoConfirmado
+
+    init {
+        _pedidoConfirmado.value = false
+    }
+
+    // conexion y acciones
     fun connect(wsUrl: String) {
-        if (webSocket != null) return // already connected or connecting
+        if (webSocket != null) return
         url = wsUrl
 
         client = OkHttpClient.Builder()
@@ -52,27 +60,27 @@ object WebSocketManager {
             .url(wsUrl)
             .build()
 
-        _connectionStatus.postValue("connecting")
+        _connectionStatus.postValue("conectando...")
         webSocket = client!!.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(ws: WebSocket, response: Response) {
-                _connectionStatus.postValue("open")
+                _connectionStatus.postValue("Bienvenidos/as")
             }
 
             override fun onMessage(ws: WebSocket, text: String) {
-                parseAndPostMessage(text)
+                parsearAndPostearMessage(text)
             }
 
             override fun onMessage(ws: WebSocket, bytes: ByteString) {
-                parseAndPostMessage(bytes.utf8())
+                parsearAndPostearMessage(bytes.utf8())
             }
 
             override fun onClosing(ws: WebSocket, code: Int, reason: String) {
                 ws.close(code, reason)
-                _connectionStatus.postValue("closing")
+                _connectionStatus.postValue("cerrando")
             }
 
             override fun onClosed(ws: WebSocket, code: Int, reason: String) {
-                _connectionStatus.postValue("closed")
+                _connectionStatus.postValue("cerrado")
                 webSocket = null
             }
 
@@ -83,6 +91,7 @@ object WebSocketManager {
         })
     }
 
+    // para enviar mensajes
     fun send(message: String, messageType: String = "") {
         val jsonMessage = JSONObject()
 
@@ -98,14 +107,15 @@ object WebSocketManager {
         webSocket?.let {
             it.send(jsonMessage.toString())
         } ?: run {
-            _incomingMessages.postValue("[error] not connected")
+            _mensajesEntrantes.postValue("[error] no conectado")
         }
     }
 
 
 
 
-    private fun parseAndPostMessage(jsonString: String) {
+    // procesamiento de mensajes entrantes
+    private fun parsearAndPostearMessage(jsonString: String) {
         try {
             val jsonObject = JSONObject(jsonString)
             val messageType = jsonObject.optString("type", "")
@@ -120,21 +130,22 @@ object WebSocketManager {
                 "success" -> {
                     val status = jsonObject.optString("status", "")
                     val message = jsonObject.optString("message", "")
-                    _incomingMessages.postValue("System: $status")
+                    _mensajesEntrantes.postValue("$status")
                 }
                 "pedido_enviado_a_mesa" -> {
                     _systemEvents.postValue("pedido_enviado_a_mesa")
+                    _pedidoConfirmado.postValue(true)
                 }
                 "pedido_cancelado_a_mesa" -> {
                     _systemEvents.postValue("pedido_cancelado_a_mesa")
                 }
                 "client_connect" -> {
                     val message = jsonObject.optString("message", "")
-                    _incomingMessages.postValue("System: $message")
+                    _mensajesEntrantes.postValue("$message")
                 }
                 "client_disconnect" -> {
                     val message = jsonObject.optString("message", "")
-                    _incomingMessages.postValue("System: $message")
+                    _mensajesEntrantes.postValue("$message")
                 }
                 "chat" -> {
                     val sender = jsonObject.optString("sender", "Unknown")
@@ -143,21 +154,23 @@ object WebSocketManager {
 
                     System.out.println("destino: $destino   mesa: $mesa")
 
+                    // para verificar que lee los mensajes correctos
                     if (destino == mesa) {
                         val formattedMessage = "$sender: $messageContent"
-                        _incomingMessages.postValue(formattedMessage)
+                        _mensajesEntrantes.postValue(formattedMessage)
                     }
                 }
                 else -> {
-                    _incomingMessages.postValue("Unknown message type: $jsonString")
+                    _mensajesEntrantes.postValue("WTF type is this?: $jsonString")
                 }
             }
 
         } catch (e: Exception) {
-            _incomingMessages.postValue("[Error parsing message]: $jsonString")
+            _mensajesEntrantes.postValue("[Error de parseo de mensaje]: $jsonString")
         }
     }
 
+    // para mensaje de envio de pedido
     fun sendPedidoMensaje(message: String) {
         val jsonMessage = JSONObject().apply {
             put("type", "pedido")
@@ -171,13 +184,20 @@ object WebSocketManager {
             it.send(jsonMessage.toString())
             System.out.println("Pedido enviado: $jsonMessage")
         } ?: run {
-            _incomingMessages.postValue("[error] not connected")
-            System.out.println("Error: WebSocket no conectado para enviar mensaje de pedido")
+            _mensajesEntrantes.postValue("[error] no conectado")
         }
+    }
+
+    // reseteo de estados necesarios para la botonera y los checkboxes
+    fun resetStates() {
+        _pedidoConfirmado.value = false
+        _systemEvents.value = ""
+        _mensajesEntrantes.value = ""
     }
 
     fun disconnect() {
         webSocket?.close(1000, "bye")
         webSocket = null
+        resetStates()
     }
 }
