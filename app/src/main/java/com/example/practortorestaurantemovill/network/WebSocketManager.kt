@@ -103,6 +103,7 @@ object WebSocketManager {
         jsonMessage.put("sender", WebSocketManager.mesaGetter)
         jsonMessage.put("destino", "Restaurante")
         jsonMessage.put("timestamp", System.currentTimeMillis())
+        jsonMessage.put("esPropio", true)
 
         webSocket?.let {
             it.send(jsonMessage.toString())
@@ -141,27 +142,28 @@ object WebSocketManager {
                 }
                 "client_connect" -> {
                     val message = jsonObject.optString("message", "")
-                    _mensajesEntrantes.postValue("$message")
+                    //_mensajesEntrantes.postValue("$message")
                 }
                 "client_disconnect" -> {
                     val message = jsonObject.optString("message", "")
-                    _mensajesEntrantes.postValue("$message")
+                    //_mensajesEntrantes.postValue("$message")
                 }
                 "chat" -> {
                     val sender = jsonObject.optString("sender", "Unknown")
                     val destino = jsonObject.optString("destino", "Unknown")
                     val messageContent = jsonObject.optString("message", "")
+                    val esPropio = jsonObject.optBoolean("esPropio", false)
 
                     System.out.println("destino: $destino   mesa: $mesa")
 
-                    // para verificar que lee los mensajes correctos
                     if (destino == mesa) {
-                        val formattedMessage = "$sender: $messageContent"
+                        val formattedMessage = if (esPropio) {
+                            "PROPIO:$sender: $messageContent"
+                        } else {
+                            "OTROS:$sender: $messageContent"
+                        }
                         _mensajesEntrantes.postValue(formattedMessage)
                     }
-                }
-                else -> {
-                    _mensajesEntrantes.postValue("WTF type is this?: $jsonString")
                 }
             }
 
@@ -190,14 +192,18 @@ object WebSocketManager {
 
     // reseteo de estados necesarios para la botonera y los checkboxes
     fun resetStates() {
+        _connectionStatus.value = ""
         _pedidoConfirmado.value = false
         _systemEvents.value = ""
         _mensajesEntrantes.value = ""
+        _errors.value = ""
     }
 
     fun disconnect() {
         webSocket?.close(1000, "bye")
         webSocket = null
+        client?.dispatcher?.executorService?.shutdown()
+        client = null
         resetStates()
     }
 }
