@@ -51,7 +51,7 @@ class ChatFragment : Fragment() {
         colorSistema = ContextCompat.getColor(requireContext(), R.color.color_mensaje_sistema)
         colorError = ContextCompat.getColor(requireContext(), R.color.color_mensaje_error)
 
-        mediaPlayer = MediaPlayer.create(requireContext(), R.raw.notificacion)
+        mediaPlayer = MediaPlayer.create(requireContext(), R.raw.notificacion2)
 
         // validacion en tiempo real
         messageInput.addTextChangedListener(object : TextWatcher {
@@ -66,7 +66,8 @@ class ChatFragment : Fragment() {
 
         WebSocketManager.mensajesEntrantes.observe(viewLifecycleOwner, Observer { msg ->
             appendMensajeConColor(msg)
-            if (!msg.startsWith("PROPIO:") && !esMensajeSistema(msg)) {
+            // para que solo reproduzca alerta sonido con mensajes de chat entrantes
+            if (!msg.startsWith("PROPIO:") && esMensajeDeChatValido(msg)) {
                 reproducirSonidoAlerta()
             }
         })
@@ -238,6 +239,13 @@ class ChatFragment : Fragment() {
             mensaje.contains("[error]", ignoreCase = true) -> colorError
             else -> colorSistema
         }
+    }
+
+    private fun esMensajeDeChatValido(mensaje: String): Boolean {
+        return mensaje.startsWith("OTROS:") &&
+                !mensaje.contains("Cliente conectado", ignoreCase = true) &&
+                !mensaje.contains("Cliente desconectado", ignoreCase = true) &&
+                !mensaje.contains("----------------------------------------------------------", ignoreCase = true)
     }
 
     override fun onDestroy() {
